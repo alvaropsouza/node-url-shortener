@@ -7,7 +7,8 @@ This API provides short link generation and tracking functionality. It uses Fast
 ## Setup
 
 1. Install dependencies: `pnpm install`
-2. Start the server: `pnpm start`
+2. Setup Database: `pnpm run setup-database`
+3. Start the server: `pnpm run dev`
 
 ## Endpoints
 
@@ -40,10 +41,6 @@ This API provides short link generation and tracking functionality. It uses Fast
 ## Error Handling
 
 - Proper error handling for database and server errors.
-
-## Server
-
-To start the server, run `pnpm start`.
 
 ## Testing
 
