@@ -2,6 +2,7 @@ import fastify from 'fastify';
 import { z } from 'zod';
 import { sql } from './lib/postgres';
 import postgres from 'postgres';
+import { redis } from './lib/redis';
 
 const app = fastify();
 
@@ -23,6 +24,8 @@ app.get('/:code', async (req, reply) => {
       return reply.status(400).send({ message: 'Link not found' });
 
     const link = result[0];
+
+    await redis.zIncrBy('ranking', 1, String(link.id));
 
     return reply.redirect(301, link.original_url);
   } catch (err) {
@@ -68,6 +71,25 @@ app.post('/api/links', async (req, reply) => {
     }
 
     return reply.status(500).send();
+  }
+});
+
+app.get('/api/links/ranking', async (req, reply) => {
+  try {
+    const result = await redis.zRangeByScoreWithScores('ranking', 0, 50);
+
+    const metrics = result
+      .sort((a, b) => b.score - a.score)
+      .map((item) => {
+        return {
+          shortLinkId: Number(item.value),
+          clicks: item.score,
+        };
+      });
+
+    return reply.status(200).send(metrics);
+  } catch (err) {
+    return reply.status(500).send({ message: 'Internal server error' });
   }
 });
 
