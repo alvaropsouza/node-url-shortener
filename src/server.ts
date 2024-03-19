@@ -5,7 +5,44 @@ import postgres from 'postgres';
 
 const app = fastify();
 
-app.post('/links', async (req, reply) => {
+app.get('/:code', async (req, reply) => {
+  try {
+    const getLinkSchema = z.object({
+      code: z.string().min(3),
+    });
+
+    const { code } = getLinkSchema.parse(req.params);
+
+    const result = await sql/*sql*/ `
+    SELECT id, original_url
+    FROM short_links
+    WHERE short_links.code = ${code}
+  `;
+
+    if (!result.length)
+      return reply.status(400).send({ message: 'Link not found' });
+
+    const link = result[0];
+
+    return reply.redirect(301, link.original_url);
+  } catch (err) {
+    return reply.status(500).send({ message: 'Internal server error' });
+  }
+});
+
+app.get('/api/links', async (req, reply) => {
+  try {
+    const result = await sql/*sql*/ `
+    SELECT * FROM short_links ORDER BY created_at DESC
+    `;
+
+    return reply.status(200).send(result);
+  } catch (err) {
+    return reply.status(500).send({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/links', async (req, reply) => {
   try {
     const createLinkSchema = z.object({
       code: z.string().min(3),
@@ -26,9 +63,7 @@ app.post('/links', async (req, reply) => {
   } catch (err) {
     if (err instanceof postgres.PostgresError) {
       if (err.code === '23505') {
-        return reply
-          .status(409)
-          .send({ message: 'Url with provided code already exists!' });
+        return reply.status(409).send({ message: 'Duplicated code!' });
       }
     }
 
